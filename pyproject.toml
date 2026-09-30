@@ -1,0 +1,29 @@
+[project]
+name = "calculadora-financiera"
+version = "1.0.0"
+description = "Calcula precios de venta, ganancias y diferencias porcentuales."
+requires-python = ">=3.12"
+authors = [
+    { name = "Daniel Valdés", email = "danivalpor30@gmail.com" }
+]
+dependencies = [
+    "flet"
+]
+
+[dependency-groups]
+dev = [
+    "flet-cli",
+    "flet-desktop",
+    "flet-web"
+]
+
+[tool.flet.metadata]
+title = "Calculadora Financiera"
+
+[tool.flet]
+org = "dev.flet"
+company = "Daniel Valdés"
+copyright = "Copyright (C) 2026 by Daniel Valdés"
+
+[tool.flet.app]
+path = "src"
