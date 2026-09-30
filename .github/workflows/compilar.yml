@@ -53,7 +53,24 @@ jobs:
 
       - name: Compilar APK
         run: |
-          flet build apk --debug --yes
+          flet build apk --yes
+
+      - name: Firmar el archivo APK
+        run: |
+          # 1. Crear el certificado de firma de depuración
+          keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+
+          # 2. Localizar la herramienta apksigner oficial del SDK
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          echo "Herramienta de firma: $APKSIGNER"
+
+          # 3. Firmar todos los APK generados
+          for apk in $(find . -name "*.apk" -not -path "*/.*"); do
+            echo "Firmando $apk..."
+            $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey "$apk"
+            $APKSIGNER verify "$apk"
+          done
+          echo "¡Todos los APKs han sido firmados con éxito!"
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
