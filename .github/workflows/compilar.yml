@@ -17,11 +17,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
       - name: Aceptar licencias de Android
         run: |
           yes | flutter doctor --android-licenses || true
@@ -38,12 +33,14 @@ jobs:
 
       - name: Compilar APK
         run: |
-          # Si tu main.py está dentro de la carpeta src, Flet compila apuntando a src/
+          # Desactiva pipefail para que la tubería de 'yes' responda automáticamente al prompt sin dar error de salida
+          set +o pipefail
           if [ -d "src" ]; then
-            flet build apk src --project mi_calculadora
+            yes y | flet build apk src --project mi_calculadora
           else
-            flet build apk --project mi_calculadora
+            yes y | flet build apk --project mi_calculadora
           fi
+          set -o pipefail
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
