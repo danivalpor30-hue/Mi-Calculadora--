@@ -33,20 +33,26 @@ jobs:
 
       - name: Sincronizar archivos del proyecto
         run: |
-          # 1. Localizar el archivo main.py
+          # 1. Localizar main.py
           MAIN_FILE=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
-          echo "Copiando $MAIN_FILE a todas las ubicaciones posibles..."
+          echo "Archivo encontrado en: $MAIN_FILE"
 
-          # 2. Asegurar que main.py exista tanto en la raíz como en src/
+          # 2. Asegurar que exista dentro de src/ (sin sobrescribirse a sí mismo)
           mkdir -p src
-          cp "$MAIN_FILE" ./main.py
-          cp "$MAIN_FILE" ./src/main.py
+          if [ "$MAIN_FILE" != "./src/main.py" ] && [ "$MAIN_FILE" != "src/main.py" ]; then
+            cp -f "$MAIN_FILE" src/main.py
+          fi
 
-          # 3. Asegurar que la carpeta assets exista en ambos lados
-          if [ -d "src/assets" ]; then
-            cp -r src/assets . 2>/dev/null || true
-          elif [ -d "assets" ]; then
-            cp -r assets src/ 2>/dev/null || true
+          # 3. Asegurar que exista en la raíz (sin sobrescribirse a sí mismo)
+          if [ "$MAIN_FILE" != "./main.py" ] && [ "$MAIN_FILE" != "main.py" ]; then
+            cp -f "$MAIN_FILE" ./main.py
+          fi
+
+          # 4. Asegurar los iconos y recursos si existen
+          if [ -d "assets" ] && [ ! -d "src/assets" ]; then
+            cp -r assets src/
+          elif [ -d "src/assets" ] && [ ! -d "assets" ]; then
+            cp -r src/assets .
           fi
 
       - name: Compilar APK
