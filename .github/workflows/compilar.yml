@@ -33,22 +33,18 @@ jobs:
 
       - name: Sincronizar archivos del proyecto
         run: |
-          # 1. Localizar main.py
           MAIN_FILE=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
           echo "Archivo encontrado en: $MAIN_FILE"
 
-          # 2. Asegurar que exista dentro de src/ (sin sobrescribirse a sí mismo)
           mkdir -p src
           if [ "$MAIN_FILE" != "./src/main.py" ] && [ "$MAIN_FILE" != "src/main.py" ]; then
             cp -f "$MAIN_FILE" src/main.py
           fi
 
-          # 3. Asegurar que exista en la raíz (sin sobrescribirse a sí mismo)
           if [ "$MAIN_FILE" != "./main.py" ] && [ "$MAIN_FILE" != "main.py" ]; then
             cp -f "$MAIN_FILE" ./main.py
           fi
 
-          # 4. Asegurar los iconos y recursos si existen
           if [ -d "assets" ] && [ ! -d "src/assets" ]; then
             cp -r assets src/
           elif [ -d "src/assets" ] && [ ! -d "assets" ]; then
@@ -57,7 +53,7 @@ jobs:
 
       - name: Compilar APK
         run: |
-          flet build apk --yes
+          flet build apk --debug --yes
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
