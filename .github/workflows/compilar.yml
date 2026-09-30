@@ -31,19 +31,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet
 
-      - name: Preparar ruta del código
-        run: |
-          # Si main.py está dentro de src/, lo copiamos a la raíz para que Flet lo encuentre
-          if [ -f "src/main.py" ]; then
-            cp src/main.py .
-          fi
-
       - name: Compilar APK
         run: |
+          # 1. Localizar dónde está main.py en cualquier subcarpeta
+          MAIN_PATH=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
+          echo "Archivo encontrado en: $MAIN_PATH"
+
+          # 2. Si no está en la raíz, copiarlo a la raíz
+          if [ "$MAIN_PATH" != "./main.py" ]; then
+            cp "$MAIN_PATH" ./main.py
+          fi
+
+          # 3. Si hay carpeta assets, copiarla a la raíz
+          ASSETS_PATH=$(find . -type d -name "assets" -not -path "*/.*" | head -n 1)
+          if [ -n "$ASSETS_PATH" ] && [ "$ASSETS_PATH" != "./assets" ]; then
+            cp -r "$ASSETS_PATH" ./assets || true
+          fi
+
+          # 4. Compilar a APK
           flet build apk --yes
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
         with:
           name: MiCalculadoraAPK
-          path: build/apk/*.apk
+          path: "**/*.apk"
