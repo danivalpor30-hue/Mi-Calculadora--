@@ -31,24 +31,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet
 
+      - name: Sincronizar archivos del proyecto
+        run: |
+          # 1. Localizar el archivo main.py
+          MAIN_FILE=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
+          echo "Copiando $MAIN_FILE a todas las ubicaciones posibles..."
+
+          # 2. Asegurar que main.py exista tanto en la raíz como en src/
+          mkdir -p src
+          cp "$MAIN_FILE" ./main.py
+          cp "$MAIN_FILE" ./src/main.py
+
+          # 3. Asegurar que la carpeta assets exista en ambos lados
+          if [ -d "src/assets" ]; then
+            cp -r src/assets . 2>/dev/null || true
+          elif [ -d "assets" ]; then
+            cp -r assets src/ 2>/dev/null || true
+          fi
+
       - name: Compilar APK
         run: |
-          # 1. Localizar dónde está main.py en cualquier subcarpeta
-          MAIN_PATH=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
-          echo "Archivo encontrado en: $MAIN_PATH"
-
-          # 2. Si no está en la raíz, copiarlo a la raíz
-          if [ "$MAIN_PATH" != "./main.py" ]; then
-            cp "$MAIN_PATH" ./main.py
-          fi
-
-          # 3. Si hay carpeta assets, copiarla a la raíz
-          ASSETS_PATH=$(find . -type d -name "assets" -not -path "*/.*" | head -n 1)
-          if [ -n "$ASSETS_PATH" ] && [ "$ASSETS_PATH" != "./assets" ]; then
-            cp -r "$ASSETS_PATH" ./assets || true
-          fi
-
-          # 4. Compilar a APK
           flet build apk --yes
 
       - name: Subir APK
