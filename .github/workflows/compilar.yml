@@ -17,9 +17,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Aceptar licencias de Android
+      - name: Aceptar licencias de Android SDK
         run: |
-          yes | flutter doctor --android-licenses || true
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -31,16 +31,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet
 
+      - name: Preparar ruta del código
+        run: |
+          # Si main.py está dentro de src/, lo copiamos a la raíz para que Flet lo encuentre
+          if [ -f "src/main.py" ]; then
+            cp src/main.py .
+          fi
+
       - name: Compilar APK
         run: |
-          # Desactiva pipefail para que la tubería de 'yes' responda automáticamente al prompt sin dar error de salida
-          set +o pipefail
-          if [ -d "src" ]; then
-            yes y | flet build apk src --project mi_calculadora
-          else
-            yes y | flet build apk --project mi_calculadora
-          fi
-          set -o pipefail
+          flet build apk --yes
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
