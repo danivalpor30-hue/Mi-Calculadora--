@@ -1,7 +1,7 @@
 import flet as ft
 
 
-# Función auxiliar compatible para botones (Flet 1.0 usa content, versiones previas text)
+# Función auxiliar para compatibilidad de botones en Flet 1.0 y versiones previas
 def crear_boton(texto, accion):
     try:
         return ft.Button(content=texto, on_click=accion)
@@ -13,17 +13,6 @@ def crear_boton(texto, accion):
                 return ft.ElevatedButton(text=texto, on_click=accion)
             except Exception:
                 return ft.FilledButton(texto, on_click=accion)
-
-
-# Función auxiliar compatible para pestañas (Flet 1.0 usa label, versiones previas text)
-def crear_tab(titulo, icono, contenido):
-    try:
-        return ft.Tab(label=titulo, icon=icono, content=contenido)
-    except Exception:
-        try:
-            return ft.Tab(text=titulo, icon=icono, content=contenido)
-        except Exception:
-            return ft.Tab(label=ft.Text(titulo), icon=icono, content=contenido)
 
 
 def main(page: ft.Page):
@@ -78,7 +67,7 @@ def main(page: ft.Page):
 
             diff = pv - pc
             pct = (diff / pc) * 100 if pc != 0 else 0
-            # 100 acciones por contrato
+            # 100 acciones por cada contrato de opciones
             ganancia_total = diff * 100 * contratos
 
             color_resultado = ft.Colors.GREEN_400 if diff >= 0 else ft.Colors.RED_400
@@ -135,20 +124,65 @@ def main(page: ft.Page):
     ], spacing=15)
 
     # ==========================================
-    # NAVEGACIÓN POR PESTAÑAS
+    # CONTENEDORES DE CADA PESTAÑA
     # ==========================================
-    tabs = ft.Tabs(
-        selected_index=1,
-        animation_duration=300,
-        tabs=[
-            crear_tab("Venta", ft.Icons.ATTACH_MONEY, ft.Container(content=tab1_content, padding=10)),
-            crear_tab("Ganancia", ft.Icons.TRENDING_UP, ft.Container(content=tab2_content, padding=10)),
-            crear_tab("Rango %", ft.Icons.PERCENT, ft.Container(content=tab3_content, padding=10)),
-        ],
-        expand=1,
+    vista_venta = ft.Container(content=tab1_content, visible=False)
+    vista_ganancia = ft.Container(content=tab2_content, visible=True)  # Vista inicial activa
+    vista_rango = ft.Container(content=tab3_content, visible=False)
+
+    # ==========================================
+    # SELECTOR DE NAVEGACIÓN SUPERIOR
+    # ==========================================
+    def cambiar_pestana(indice):
+        vista_venta.visible = (indice == 0)
+        vista_ganancia.visible = (indice == 1)
+        vista_rango.visible = (indice == 2)
+
+        for i, boton in enumerate(botones_pestanas):
+            if i == indice:
+                boton.bgcolor = ft.Colors.BLUE_600
+                boton.border = ft.border.all(1, ft.Colors.BLUE_300)
+            else:
+                boton.bgcolor = ft.Colors.GREY_800
+                boton.border = ft.border.all(1, ft.Colors.TRANSPARENT)
+        page.update()
+
+    def crear_pestana_boton(indice, titulo, icono, activa=False):
+        return ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(icono, size=16, color=ft.Colors.WHITE),
+                    ft.Text(titulo, size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=5,
+            ),
+            bgcolor=ft.Colors.BLUE_600 if activa else ft.Colors.GREY_800,
+            border=ft.border.all(1, ft.Colors.BLUE_300 if activa else ft.Colors.TRANSPARENT),
+            border_radius=8,
+            padding=ft.padding.symmetric(vertical=10, horizontal=6),
+            expand=True,
+            alignment=ft.Alignment(0, 0),
+            on_click=lambda e, idx=indice: cambiar_pestana(idx),
+        )
+
+    botones_pestanas = [
+        crear_pestana_boton(0, "Venta", ft.Icons.ATTACH_MONEY, activa=False),
+        crear_pestana_boton(1, "Ganancia", ft.Icons.TRENDING_UP, activa=True),
+        crear_pestana_boton(2, "Rango %", ft.Icons.PERCENT, activa=False),
+    ]
+
+    barra_pestanas = ft.Container(
+        content=ft.Row(botones_pestanas, spacing=8),
+        margin=ft.margin.only(bottom=15),
     )
 
-    page.add(tabs)
+    page.add(
+        barra_pestanas,
+        vista_venta,
+        vista_ganancia,
+        vista_rango,
+    )
 
 
 # ==========================================
