@@ -1,5 +1,15 @@
 import flet as ft
 
+# Importación compatible para móvil (Android/iOS) y Web
+try:
+    from flet.app import app as run_app
+except Exception:
+    try:
+        from flet_runtime.app import app as run_app
+    except Exception:
+        run_app = getattr(ft, "app", None)
+
+
 def main(page: ft.Page):
     page.title = "Calculadora Financiera"
     page.theme_mode = ft.ThemeMode.DARK
@@ -7,7 +17,7 @@ def main(page: ft.Page):
     page.scroll = ft.ScrollMode.AUTO
 
     # ==========================================
-    # PESTAÑA 1: CALCULAR PRECIO DE VENTA
+    # PESTAÑA 1: OBJETIVO DE VENTA
     # ==========================================
     p1_compra = ft.TextField(label="Precio de compra ($)", keyboard_type=ft.KeyboardType.NUMBER)
     p1_pct = ft.TextField(label="% Ganancia buscada (ej: 10)", keyboard_type=ft.KeyboardType.NUMBER)
@@ -109,10 +119,10 @@ def main(page: ft.Page):
     ], spacing=15)
 
     # ==========================================
-    # NAVEGACIÓN POR PESTAÑAS
+    # NAVEGACIÓN
     # ==========================================
     tabs = ft.Tabs(
-        selected_index=1,  # Abre directamente en Ganancia
+        selected_index=1,
         animation_duration=300,
         tabs=[
             ft.Tab(text="Venta", icon=ft.Icons.ATTACH_MONEY, content=ft.Container(content=tab1_content, padding=10)),
@@ -124,4 +134,8 @@ def main(page: ft.Page):
 
     page.add(tabs)
 
-ft.app(target=main)
+
+if run_app:
+    run_app(target=main)
+else:
+    ft.app(target=main)
