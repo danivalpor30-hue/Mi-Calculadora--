@@ -1,0 +1,64 @@
+name: Publicar Web en GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Flet
+        run: |
+          python -m pip install --upgrade pip
+          pip install flet
+
+      - name: Sincronizar archivos del proyecto
+        run: |
+          MAIN_FILE=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
+          mkdir -p src
+          if [ "$MAIN_FILE" != "./src/main.py" ] && [ "$MAIN_FILE" != "src/main.py" ]; then
+            cp -f "$MAIN_FILE" src/main.py
+          fi
+          if [ "$MAIN_FILE" != "./main.py" ] && [ "$MAIN_FILE" != "main.py" ]; then
+            cp -f "$MAIN_FILE" ./main.py
+          fi
+
+      - name: Compilar para Web
+        run: |
+          flet build web --yes
+          # Ajuste de ruta relativa para que cargue correctamente en GitHub Pages
+          if [ -f "build/web/index.html" ]; then
+            sed -i 's|<base href="/"|<base href="./"|g' build/web/index.html
+          fi
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'build/web'
+
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
