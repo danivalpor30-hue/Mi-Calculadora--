@@ -1,6 +1,15 @@
 import flet as ft
 
 
+# Función auxiliar para compatibilidad de botones en Flet 1.0 y versiones anteriores
+def crear_boton(texto, accion):
+    if hasattr(ft, "Button"):
+        return ft.Button(texto, on_click=accion)
+    elif hasattr(ft, "ElevatedButton"):
+        return ft.ElevatedButton(texto, on_click=accion)
+    return ft.FilledButton(texto, on_click=accion)
+
+
 def main(page: ft.Page):
     page.title = "Calculadora Financiera"
     page.theme_mode = ft.ThemeMode.DARK
@@ -24,7 +33,7 @@ def main(page: ft.Page):
             p1_resultado.value = "Ingresa números válidos"
         page.update()
 
-    btn_tab1 = ft.ElevatedButton("Calcular Venta", on_click=calcular_tab1)
+    btn_tab1 = crear_boton("Calcular Venta", calcular_tab1)
 
     tab1_content = ft.Column([
         ft.Text("Objetivo de Venta", size=20, weight=ft.FontWeight.BOLD),
@@ -53,7 +62,7 @@ def main(page: ft.Page):
 
             diff = pv - pc
             pct = (diff / pc) * 100 if pc != 0 else 0
-            # Cada contrato equivale a 100 acciones
+            # 100 acciones por cada contrato de opciones
             ganancia_total = diff * 100 * contratos
 
             color_resultado = ft.Colors.GREEN_400 if diff >= 0 else ft.Colors.RED_400
@@ -68,7 +77,7 @@ def main(page: ft.Page):
             p2_res_total.color = ft.Colors.RED_400
         page.update()
 
-    btn_tab2 = ft.ElevatedButton("Calcular Ganancia", on_click=calcular_tab2)
+    btn_tab2 = crear_boton("Calcular Ganancia", calcular_tab2)
 
     tab2_content = ft.Column([
         ft.Text("Cálculo de Ganancia (Opciones)", size=20, weight=ft.FontWeight.BOLD),
@@ -99,7 +108,7 @@ def main(page: ft.Page):
             p3_resultado.value = "Ingresa números válidos"
         page.update()
 
-    btn_tab3 = ft.ElevatedButton("Calcular Rango", on_click=calcular_tab3)
+    btn_tab3 = crear_boton("Calcular Rango", calcular_tab3)
 
     tab3_content = ft.Column([
         ft.Text("Diferencia de Rango %", size=20, weight=ft.FontWeight.BOLD),
@@ -127,42 +136,9 @@ def main(page: ft.Page):
 
 
 # ==========================================
-# ARRANQUE COMPATIBLE (MÓVIL, WEB Y DESKTOP)
+# INICIO OFICIAL DE LA APLICACIÓN
 # ==========================================
-def iniciar_app():
-    # 1. Si ft.app es directamente una función ejecutable
-    if hasattr(ft, "app") and callable(ft.app):
-        ft.app(target=main)
-        return
-
-    # 2. Si ft.app es un módulo y la función está adentro como ft.app.app
-    if hasattr(ft, "app") and hasattr(ft.app, "app") and callable(ft.app.app):
-        ft.app.app(target=main)
-        return
-
-    # 3. Intentar a través de flet_runtime
-    try:
-        import flet_runtime.app as fra
-        if callable(fra):
-            fra(target=main)
-            return
-        if hasattr(fra, "app") and callable(fra.app):
-            fra.app(target=main)
-            return
-    except Exception:
-        pass
-
-    # 4. Intentar a través de flet.app
-    try:
-        import flet.app as fa
-        if callable(fa):
-            fa(target=main)
-            return
-        if hasattr(fa, "app") and callable(fa.app):
-            fa.app(target=main)
-            return
-    except Exception:
-        pass
-
-
-iniciar_app()
+if hasattr(ft, "run"):
+    ft.run(main)
+elif hasattr(ft, "app"):
+    ft.app(target=main)
