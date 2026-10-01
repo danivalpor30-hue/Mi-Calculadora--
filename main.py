@@ -1,16 +1,5 @@
 import flet as ft
 
-# -------------------------------------------------------------------------
-# Compatibilidad de ejecución para Android móvil (Serious Python) y Web
-# -------------------------------------------------------------------------
-try:
-  from flet_runtime.app import app as run_app
-except Exception:
-  try:
-    from flet.app import app as run_app
-  except Exception:
-    run_app = getattr(ft, "app", None)
-
 
 def main(page: ft.Page):
   page.title = "Calculadora Financiera"
@@ -210,9 +199,9 @@ def main(page: ft.Page):
 
 
 # -------------------------------------------------------------------------
-# Inicio de la aplicación
+# Ejecución universal compatible con Flet 1.0+ y versiones previas
 # -------------------------------------------------------------------------
-if run_app:
-  run_app(target=main)
+if hasattr(ft, "run"):
+  ft.run(main)
 elif hasattr(ft, "app"):
   ft.app(target=main)
