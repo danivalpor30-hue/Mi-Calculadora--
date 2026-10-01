@@ -1,14 +1,5 @@
 import flet as ft
 
-# Importación compatible para móvil (Android/iOS) y Web
-try:
-    from flet.app import app as run_app
-except Exception:
-    try:
-        from flet_runtime.app import app as run_app
-    except Exception:
-        run_app = getattr(ft, "app", None)
-
 
 def main(page: ft.Page):
     page.title = "Calculadora Financiera"
@@ -17,7 +8,7 @@ def main(page: ft.Page):
     page.scroll = ft.ScrollMode.AUTO
 
     # ==========================================
-    # PESTAÑA 1: OBJETIVO DE VENTA
+    # PESTAÑA 1: CALCULAR PRECIO DE VENTA
     # ==========================================
     p1_compra = ft.TextField(label="Precio de compra ($)", keyboard_type=ft.KeyboardType.NUMBER)
     p1_pct = ft.TextField(label="% Ganancia buscada (ej: 10)", keyboard_type=ft.KeyboardType.NUMBER)
@@ -119,7 +110,7 @@ def main(page: ft.Page):
     ], spacing=15)
 
     # ==========================================
-    # NAVEGACIÓN
+    # NAVEGACIÓN POR PESTAÑAS
     # ==========================================
     tabs = ft.Tabs(
         selected_index=1,
@@ -135,7 +126,43 @@ def main(page: ft.Page):
     page.add(tabs)
 
 
-if run_app:
-    run_app(target=main)
-else:
-    ft.app(target=main)
+# ==========================================
+# ARRANQUE COMPATIBLE (MÓVIL, WEB Y DESKTOP)
+# ==========================================
+def iniciar_app():
+    # 1. Si ft.app es directamente una función ejecutable
+    if hasattr(ft, "app") and callable(ft.app):
+        ft.app(target=main)
+        return
+
+    # 2. Si ft.app es un módulo y la función está adentro como ft.app.app
+    if hasattr(ft, "app") and hasattr(ft.app, "app") and callable(ft.app.app):
+        ft.app.app(target=main)
+        return
+
+    # 3. Intentar a través de flet_runtime
+    try:
+        import flet_runtime.app as fra
+        if callable(fra):
+            fra(target=main)
+            return
+        if hasattr(fra, "app") and callable(fra.app):
+            fra.app(target=main)
+            return
+    except Exception:
+        pass
+
+    # 4. Intentar a través de flet.app
+    try:
+        import flet.app as fa
+        if callable(fa):
+            fa(target=main)
+            return
+        if hasattr(fa, "app") and callable(fa.app):
+            fa.app(target=main)
+            return
+    except Exception:
+        pass
+
+
+iniciar_app()
