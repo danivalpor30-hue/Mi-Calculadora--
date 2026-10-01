@@ -1,21 +1,29 @@
 import flet as ft
 
 
-# Función auxiliar para compatibilidad de botones
+# Función auxiliar compatible para botones (Flet 1.0 usa content, versiones previas text)
 def crear_boton(texto, accion):
-    if hasattr(ft, "ElevatedButton"):
-        return ft.ElevatedButton(text=texto, on_click=accion)
-    elif hasattr(ft, "Button"):
-        return ft.Button(text=texto, on_click=accion)
-    return ft.FilledButton(text=texto, on_click=accion)
+    try:
+        return ft.Button(content=texto, on_click=accion)
+    except Exception:
+        try:
+            return ft.Button(content=ft.Text(texto), on_click=accion)
+        except Exception:
+            try:
+                return ft.ElevatedButton(text=texto, on_click=accion)
+            except Exception:
+                return ft.FilledButton(texto, on_click=accion)
 
 
-# Función auxiliar para compatibilidad de pestañas (label vs text)
+# Función auxiliar compatible para pestañas (Flet 1.0 usa label, versiones previas text)
 def crear_tab(titulo, icono, contenido):
     try:
         return ft.Tab(label=titulo, icon=icono, content=contenido)
-    except TypeError:
-        return ft.Tab(text=titulo, icon=icono, content=contenido)
+    except Exception:
+        try:
+            return ft.Tab(text=titulo, icon=icono, content=contenido)
+        except Exception:
+            return ft.Tab(label=ft.Text(titulo), icon=icono, content=contenido)
 
 
 def main(page: ft.Page):
