@@ -1,5 +1,16 @@
 import flet as ft
 
+# -------------------------------------------------------------------------
+# Compatibilidad de ejecución para Android móvil (Serious Python) y Web
+# -------------------------------------------------------------------------
+try:
+  from flet_runtime.app import app as run_app
+except Exception:
+  try:
+    from flet.app import app as run_app
+  except Exception:
+    run_app = getattr(ft, "app", None)
+
 
 def main(page: ft.Page):
   page.title = "Calculadora Financiera"
@@ -75,7 +86,7 @@ def main(page: ft.Page):
   # -------------------------------------------------------------------------
   # PESTAÑA 3: Precio de Venta y Stop Loss
   # -------------------------------------------------------------------------
-  # Venta objetivo
+  # Venta rápida
   vnt_compra = ft.TextField(
       label="Precio de compra", keyboard_type=ft.KeyboardType.NUMBER
   )
@@ -190,9 +201,7 @@ def main(page: ft.Page):
       ),
   )
 
-  # -------------------------------------------------------------------------
-  # Orden de visualización de pestañas
-  # -------------------------------------------------------------------------
+  # Barra de pestañas
   tabs_control = ft.Tabs(
       selected_index=0,
       tabs=[tab_capital, tab_rango, tab_venta_sl, tab_ganancia],
@@ -200,4 +209,10 @@ def main(page: ft.Page):
   page.add(tabs_control)
 
 
-ft.app(target=main)
+# -------------------------------------------------------------------------
+# Inicio de la aplicación
+# -------------------------------------------------------------------------
+if run_app:
+  run_app(target=main)
+elif hasattr(ft, "app"):
+  ft.app(target=main)
