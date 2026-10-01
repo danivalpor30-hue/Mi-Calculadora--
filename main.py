@@ -1,233 +1,127 @@
 import flet as ft
 
-
 def main(page: ft.Page):
-  page.title = "Calculadora Financiera"
-  page.theme_mode = ft.ThemeMode.DARK
-  page.padding = 20
+    page.title = "Calculadora Financiera"
+    page.theme_mode = ft.ThemeMode.DARK
+    page.padding = 20
+    page.scroll = ft.ScrollMode.AUTO
 
-  # -------------------------------------------------------------------------
-  # 1. PESTAÑA: Capital Inicial (% de cuenta)
-  # -------------------------------------------------------------------------
-  cap_balance = ft.TextField(
-      label="Balance actual ($)", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  cap_pct = ft.TextField(
-      label="% a invertir (ej: 30)", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  res_cap = ft.Text(value="", weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    # ==========================================
+    # PESTAÑA 1: CALCULAR PRECIO DE VENTA
+    # ==========================================
+    p1_compra = ft.TextField(label="Precio de compra ($)", keyboard_type=ft.KeyboardType.NUMBER)
+    p1_pct = ft.TextField(label="% Ganancia buscada (ej: 10)", keyboard_type=ft.KeyboardType.NUMBER)
+    p1_resultado = ft.Text(value="", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_400)
 
-  def calc_cap(e):
-    try:
-      balance = float(cap_balance.value)
-      pct = float(cap_pct.value)
-      capital = balance * (pct / 100)
-      remanente = balance - capital
-      res_cap.value = (
-          f"Capital inicial: ${capital:.2f}\nBalance restante: ${remanente:.2f}"
-      )
-    except ValueError:
-      res_cap.value = "Error: Introduce números válidos"
-    page.update()
+    def calcular_tab1(e):
+        try:
+            pc = float(p1_compra.value)
+            pct = float(p1_pct.value)
+            pv = pc * (1 + (pct / 100))
+            p1_resultado.value = f"Precio de venta objetivo: ${pv:.2f}"
+        except ValueError:
+            p1_resultado.value = "Ingresa números válidos"
+        page.update()
 
-  btn_cap = ft.ElevatedButton(text="Calcular Capital", on_click=calc_cap)
-  tab_capital = ft.Tab(
-      text="1. Capital",
-      content=ft.Column(
-          [cap_balance, cap_pct, btn_cap, res_cap],
-          spacing=12,
-          scroll=ft.ScrollMode.AUTO,
-      ),
-  )
+    btn_tab1 = ft.ElevatedButton("Calcular Venta", on_click=calcular_tab1)
 
-  # -------------------------------------------------------------------------
-  # 2. PESTAÑA: Rango de Precio
-  # -------------------------------------------------------------------------
-  rng_min = ft.TextField(
-      label="Precio mínimo", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  rng_max = ft.TextField(
-      label="Precio máximo", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  res_rng = ft.Text(value="", weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    tab1_content = ft.Column([
+        ft.Text("Objetivo de Venta", size=20, weight=ft.FontWeight.BOLD),
+        p1_compra,
+        p1_pct,
+        btn_tab1,
+        p1_resultado
+    ], spacing=15)
 
-  def calc_rng(e):
-    try:
-      mn = float(rng_min.value)
-      mx = float(rng_max.value)
-      diff = mx - mn
-      pct = (diff / mn) * 100 if mn != 0 else 0
-      res_rng.value = f"Diferencia: ${diff:.2f} ({pct:.2f}%)"
-    except ValueError:
-      res_rng.value = "Error: Introduce números válidos"
-    page.update()
+    # ==========================================
+    # PESTAÑA 2: GANANCIA REAL + CONTRATOS
+    # ==========================================
+    p2_compra = ft.TextField(label="Precio de compra ($)", keyboard_type=ft.KeyboardType.NUMBER)
+    p2_venta = ft.TextField(label="Precio de venta ($)", keyboard_type=ft.KeyboardType.NUMBER)
+    p2_contratos = ft.TextField(label="Cantidad de contratos", value="1", keyboard_type=ft.KeyboardType.NUMBER)
+    
+    p2_res_diferencia = ft.Text(value="", size=16, weight=ft.FontWeight.W_500)
+    p2_res_pct = ft.Text(value="", size=16, weight=ft.FontWeight.W_500)
+    p2_res_total = ft.Text(value="", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_400)
 
-  btn_rng = ft.ElevatedButton(text="Calcular Rango", on_click=calc_rng)
-  tab_rango = ft.Tab(
-      text="2. Rango",
-      content=ft.Column(
-          [rng_min, rng_max, btn_rng, res_rng],
-          spacing=12,
-          scroll=ft.ScrollMode.AUTO,
-      ),
-  )
+    def calcular_tab2(e):
+        try:
+            pc = float(p2_compra.value)
+            pv = float(p2_venta.value)
+            contratos = float(p2_contratos.value)
 
-  # -------------------------------------------------------------------------
-  # 3. PESTAÑA: Precio de Venta y Stop Loss
-  # -------------------------------------------------------------------------
-  vnt_compra = ft.TextField(
-      label="Precio de compra", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  vnt_pct = ft.TextField(
-      label="% buscado (ej: 10)", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  vnt_tarifa = ft.TextField(
-      label="Tarifa broker total ($)",
-      value="2",
-      keyboard_type=ft.KeyboardType.NUMBER,
-  )
-  res_vnt = ft.Text(value="", weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+            diff = pv - pc
+            pct = (diff / pc) * 100 if pc != 0 else 0
+            # Cada contrato equivale a 100 acciones
+            ganancia_total = diff * 100 * contratos
 
-  def calc_vnt(e):
-    try:
-      pc = float(vnt_compra.value)
-      pct = float(vnt_pct.value)
-      tarifa = float(vnt_tarifa.value)
-      pv = (pc * (1 + (pct / 100))) + (tarifa / 100)
-      res_vnt.value = f"Precio de venta sugerido: ${pv:.2f}"
-    except ValueError:
-      res_vnt.value = "Error: Introduce números válidos"
-    page.update()
+            color_resultado = ft.Colors.GREEN_400 if diff >= 0 else ft.Colors.RED_400
 
-  btn_vnt = ft.ElevatedButton(text="Calcular Venta", on_click=calc_vnt)
+            p2_res_diferencia.value = f"Diferencia por acción: ${diff:.2f}"
+            p2_res_pct.value = f"Rendimiento: {pct:.2f}%"
+            p2_res_total.value = f"Ganancia Total: ${ganancia_total:.2f}"
+            p2_res_total.color = color_resultado
 
-  sl_capital = ft.TextField(
-      label="Capital invertido ($)", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  sl_pct = ft.TextField(
-      label="Stop loss (% desfavorable, ej: 20)",
-      keyboard_type=ft.KeyboardType.NUMBER,
-  )
-  res_sl = ft.Text(value="", weight=ft.FontWeight.BOLD, color=ft.Colors.RED_400)
+        except ValueError:
+            p2_res_total.value = "Ingresa números válidos"
+            p2_res_total.color = ft.Colors.RED_400
+        page.update()
 
-  def calc_sl(e):
-    try:
-      cap = float(sl_capital.value)
-      pct = float(sl_pct.value)
-      perdida = cap * (pct / 100)
-      remanente = cap - perdida
-      res_sl.value = (
-          f"Salir a partir de: -${perdida:.2f} de pérdida\nCapital restante:"
-          f" ${remanente:.2f}"
-      )
-    except ValueError:
-      res_sl.value = "Error: Introduce números válidos"
-    page.update()
+    btn_tab2 = ft.ElevatedButton("Calcular Ganancia", on_click=calcular_tab2)
 
-  btn_sl = ft.ElevatedButton(
-      text="Calcular Stop Loss",
-      on_click=calc_sl,
-      color=ft.Colors.WHITE,
-      bgcolor=ft.Colors.RED_700,
-  )
+    tab2_content = ft.Column([
+        ft.Text("Cálculo de Ganancia (Opciones)", size=20, weight=ft.FontWeight.BOLD),
+        p2_compra,
+        p2_venta,
+        p2_contratos,
+        btn_tab2,
+        p2_res_diferencia,
+        p2_res_pct,
+        p2_res_total
+    ], spacing=12)
 
-  tab_venta_sl = ft.Tab(
-      text="3. Venta / SL",
-      content=ft.Column(
-          [
-              vnt_compra,
-              vnt_pct,
-              vnt_tarifa,
-              btn_vnt,
-              res_vnt,
-              ft.Divider(height=25, color=ft.Colors.GREY_700),
-              ft.Text(
-                  "Gestión de Riesgo (Stop Loss)",
-                  weight=ft.FontWeight.BOLD,
-                  size=16,
-              ),
-              sl_capital,
-              sl_pct,
-              btn_sl,
-              res_sl,
-          ],
-          spacing=12,
-          scroll=ft.ScrollMode.AUTO,
-      ),
-  )
+    # ==========================================
+    # PESTAÑA 3: RANGO %
+    # ==========================================
+    p3_min = ft.TextField(label="Precio mínimo / inicial", keyboard_type=ft.KeyboardType.NUMBER)
+    p3_max = ft.TextField(label="Precio máximo / final", keyboard_type=ft.KeyboardType.NUMBER)
+    p3_resultado = ft.Text(value="", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400)
 
-  # -------------------------------------------------------------------------
-  # 4. PESTAÑA: Ganancia Real
-  # -------------------------------------------------------------------------
-  gan_compra = ft.TextField(
-      label="Precio de compra real", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  gan_venta = ft.TextField(
-      label="Precio de venta real", keyboard_type=ft.KeyboardType.NUMBER
-  )
-  res_gan = ft.Text(value="", weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN)
+    def calcular_tab3(e):
+        try:
+            p_min = float(p3_min.value)
+            p_max = float(p3_max.value)
+            diferencia = p_max - p_min
+            var_pct = (diferencia / p_min) * 100 if p_min != 0 else 0
+            p3_resultado.value = f"Diferencia: ${diferencia:.2f} | Variación: {var_pct:.2f}%"
+        except ValueError:
+            p3_resultado.value = "Ingresa números válidos"
+        page.update()
 
-  def calc_gan(e):
-    try:
-      pc = float(gan_compra.value)
-      pv = float(gan_venta.value)
-      diff = pv - pc
-      pct = (diff / pc) * 100 if pc != 0 else 0
-      res_gan.value = f"Ganancia: ${diff:.2f} ({pct:.2f}%)"
-    except ValueError:
-      res_gan.value = "Error: Introduce números válidos"
-    page.update()
+    btn_tab3 = ft.ElevatedButton("Calcular Rango", on_click=calcular_tab3)
 
-  btn_gan = ft.ElevatedButton(text="Calcular Ganancia", on_click=calc_gan)
-  tab_ganancia = ft.Tab(
-      text="4. Ganancia",
-      content=ft.Column(
-          [gan_compra, gan_venta, btn_gan, res_gan],
-          spacing=12,
-          scroll=ft.ScrollMode.AUTO,
-      ),
-  )
+    tab3_content = ft.Column([
+        ft.Text("Diferencia de Rango %", size=20, weight=ft.FontWeight.BOLD),
+        p3_min,
+        p3_max,
+        btn_tab3,
+        p3_resultado
+    ], spacing=15)
 
-  # Control de pestañas
-  tabs_control = ft.Tabs(
-      selected_index=0,
-      tabs=[tab_capital, tab_rango, tab_venta_sl, tab_ganancia],
-  )
-  page.add(tabs_control)
+    # ==========================================
+    # NAVEGACIÓN POR PESTAÑAS
+    # ==========================================
+    tabs = ft.Tabs(
+        selected_index=1,  # Abre directamente en Ganancia
+        animation_duration=300,
+        tabs=[
+            ft.Tab(text="Venta", icon=ft.Icons.ATTACH_MONEY, content=ft.Container(content=tab1_content, padding=10)),
+            ft.Tab(text="Ganancia", icon=ft.Icons.TRENDING_UP, content=ft.Container(content=tab2_content, padding=10)),
+            ft.Tab(text="Rango %", icon=ft.Icons.PERCENT, content=ft.Container(content=tab3_content, padding=10)),
+        ],
+        expand=1,
+    )
 
+    page.add(tabs)
 
-# -------------------------------------------------------------------------
-# Bloque de arranque seguro para móviles y web
-# -------------------------------------------------------------------------
-def arrancar():
-  # Método 1: Flet sincrónico estándar de Serious Python
-  try:
-    import flet.sync as fs
-
-    if hasattr(fs, "app"):
-      fs.app(target=main)
-      return
-  except Exception:
-    pass
-
-  # Método 2: Módulo flet.app interno
-  try:
-    import flet.app as fa
-
-    if hasattr(fa, "app"):
-      fa.app(target=main)
-      return
-    elif callable(fa):
-      fa(target=main)
-      return
-  except Exception:
-    pass
-
-  # Método 3: Llamada directa a nivel de paquete
-  try:
-    ft.app(target=main)
-  except Exception:
-    pass
-
-
-arrancar()
+ft.app(target=main)
