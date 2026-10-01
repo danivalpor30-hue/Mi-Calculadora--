@@ -1,7 +1,7 @@
 import flet as ft
 
 
-# Función auxiliar para compatibilidad de botones en Flet 1.0 y versiones previas
+# Función auxiliar compatible para botones
 def crear_boton(texto, accion):
     try:
         return ft.Button(content=texto, on_click=accion)
@@ -19,6 +19,7 @@ def main(page: ft.Page):
     page.title = "Calculadora Financiera"
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = 20
+    page.spacing = 15
     page.scroll = ft.ScrollMode.AUTO
 
     # ==========================================
@@ -127,7 +128,7 @@ def main(page: ft.Page):
     # CONTENEDORES DE CADA PESTAÑA
     # ==========================================
     vista_venta = ft.Container(content=tab1_content, visible=False)
-    vista_ganancia = ft.Container(content=tab2_content, visible=True)  # Vista inicial activa
+    vista_ganancia = ft.Container(content=tab2_content, visible=True)  # Vista activa al inicio
     vista_rango = ft.Container(content=tab3_content, visible=False)
 
     # ==========================================
@@ -139,12 +140,7 @@ def main(page: ft.Page):
         vista_rango.visible = (indice == 2)
 
         for i, boton in enumerate(botones_pestanas):
-            if i == indice:
-                boton.bgcolor = ft.Colors.BLUE_600
-                boton.border = ft.border.all(1, ft.Colors.BLUE_300)
-            else:
-                boton.bgcolor = ft.Colors.GREY_800
-                boton.border = ft.border.all(1, ft.Colors.TRANSPARENT)
+            boton.bgcolor = ft.Colors.BLUE_600 if i == indice else ft.Colors.GREY_800
         page.update()
 
     def crear_pestana_boton(indice, titulo, icono, activa=False):
@@ -155,14 +151,13 @@ def main(page: ft.Page):
                     ft.Text(titulo, size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=5,
             ),
             bgcolor=ft.Colors.BLUE_600 if activa else ft.Colors.GREY_800,
-            border=ft.border.all(1, ft.Colors.BLUE_300 if activa else ft.Colors.TRANSPARENT),
             border_radius=8,
-            padding=ft.padding.symmetric(vertical=10, horizontal=6),
+            padding=10,
             expand=True,
-            alignment=ft.Alignment(0, 0),
             on_click=lambda e, idx=indice: cambiar_pestana(idx),
         )
 
@@ -172,10 +167,7 @@ def main(page: ft.Page):
         crear_pestana_boton(2, "Rango %", ft.Icons.PERCENT, activa=False),
     ]
 
-    barra_pestanas = ft.Container(
-        content=ft.Row(botones_pestanas, spacing=8),
-        margin=ft.margin.only(bottom=15),
-    )
+    barra_pestanas = ft.Row(botones_pestanas, spacing=8)
 
     page.add(
         barra_pestanas,
