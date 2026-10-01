@@ -53,38 +53,25 @@ jobs:
 
       - name: Compilar APK
         run: |
-          # Monitor de dependencias: neutraliza path_provider_android 2.3.1 y jni
+          # Monitor de versión en segundo plano (parche oficial para jni)
           (
             while true; do
-              # 1. Si se descarga path_provider_android 2.3.1, forzamos anulación de bindings JNI
-              for f in $HOME/.pub-cache/hosted/pub.dev/path_provider_android-*/lib/src/path_provider.g.dart; do
-                if [ -f "$f" ]; then
-                  sed -i 's/JniResult/dynamic/g' "$f" 2>/dev/null || true
-                  sed -i 's/JMethodIDPtr/dynamic/g' "$f" 2>/dev/null || true
-                  sed -i 's/ffi\.Pointer/dynamic/g' "$f" 2>/dev/null || true
-                  sed -i 's/ffi\.Void/dynamic/g' "$f" 2>/dev/null || true
-                  sed -i 's/Pointer/dynamic/g' "$f" 2>/dev/null || true
-                  sed -i 's/Void/dynamic/g' "$f" 2>/dev/null || true
-                fi
-              done
-
-              # 2. Neutralizar aserciones de jni
               for f in $HOME/.pub-cache/hosted/pub.dev/jni-*/lib/src/version_check.dart; do
                 if [ -f "$f" ]; then
                   sed -i 's/actualMinorVersion >= minor/true/g' "$f" 2>/dev/null || true
                   sed -i 's/actualMinorVersion = [0-9]*/actualMinorVersion = 99/g' "$f" 2>/dev/null || true
                 fi
               done
-              sleep 0.5
+              sleep 1
             done
           ) &
-          WATCHER_PID=$!
+          PATCH_PID=$!
 
-          # Compilación oficial
+          # Compilación oficial de Flet
           flet build apk --yes
 
           # Detener monitor
-          kill $WATCHER_PID 2>/dev/null || true
+          kill $PATCH_PID 2>/dev/null || true
 
       - name: Firmar el archivo APK
         run: |
