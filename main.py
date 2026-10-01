@@ -1,13 +1,21 @@
 import flet as ft
 
 
-# Función auxiliar para compatibilidad de botones en Flet 1.0 y versiones anteriores
+# Función auxiliar para compatibilidad de botones
 def crear_boton(texto, accion):
-    if hasattr(ft, "Button"):
-        return ft.Button(texto, on_click=accion)
-    elif hasattr(ft, "ElevatedButton"):
-        return ft.ElevatedButton(texto, on_click=accion)
-    return ft.FilledButton(texto, on_click=accion)
+    if hasattr(ft, "ElevatedButton"):
+        return ft.ElevatedButton(text=texto, on_click=accion)
+    elif hasattr(ft, "Button"):
+        return ft.Button(text=texto, on_click=accion)
+    return ft.FilledButton(text=texto, on_click=accion)
+
+
+# Función auxiliar para compatibilidad de pestañas (label vs text)
+def crear_tab(titulo, icono, contenido):
+    try:
+        return ft.Tab(label=titulo, icon=icono, content=contenido)
+    except TypeError:
+        return ft.Tab(text=titulo, icon=icono, content=contenido)
 
 
 def main(page: ft.Page):
@@ -62,7 +70,7 @@ def main(page: ft.Page):
 
             diff = pv - pc
             pct = (diff / pc) * 100 if pc != 0 else 0
-            # 100 acciones por cada contrato de opciones
+            # 100 acciones por contrato
             ganancia_total = diff * 100 * contratos
 
             color_resultado = ft.Colors.GREEN_400 if diff >= 0 else ft.Colors.RED_400
@@ -125,9 +133,9 @@ def main(page: ft.Page):
         selected_index=1,
         animation_duration=300,
         tabs=[
-            ft.Tab(text="Venta", icon=ft.Icons.ATTACH_MONEY, content=ft.Container(content=tab1_content, padding=10)),
-            ft.Tab(text="Ganancia", icon=ft.Icons.TRENDING_UP, content=ft.Container(content=tab2_content, padding=10)),
-            ft.Tab(text="Rango %", icon=ft.Icons.PERCENT, content=ft.Container(content=tab3_content, padding=10)),
+            crear_tab("Venta", ft.Icons.ATTACH_MONEY, ft.Container(content=tab1_content, padding=10)),
+            crear_tab("Ganancia", ft.Icons.TRENDING_UP, ft.Container(content=tab2_content, padding=10)),
+            crear_tab("Rango %", ft.Icons.PERCENT, ft.Container(content=tab3_content, padding=10)),
         ],
         expand=1,
     )
@@ -136,7 +144,7 @@ def main(page: ft.Page):
 
 
 # ==========================================
-# INICIO OFICIAL DE LA APLICACIÓN
+# INICIO OFICIAL
 # ==========================================
 if hasattr(ft, "run"):
     ft.run(main)
