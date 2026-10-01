@@ -188,7 +188,7 @@ def main(page: ft.Page):
       ),
   )
 
-  # Renderizado de pestañas
+  # Control de pestañas
   tabs_control = ft.Tabs(
       selected_index=0,
       tabs=[tab_capital, tab_rango, tab_venta_sl, tab_ganancia],
@@ -197,11 +197,37 @@ def main(page: ft.Page):
 
 
 # -------------------------------------------------------------------------
-# Arranque: usa el runtime nativo en Android y el estándar en Web
+# Bloque de arranque seguro para móviles y web
 # -------------------------------------------------------------------------
-try:
-  from flet_runtime.app import app as run_app
+def arrancar():
+  # Método 1: Flet sincrónico estándar de Serious Python
+  try:
+    import flet.sync as fs
 
-  run_app(target=main)
-except Exception:
-  ft.app(target=main)
+    if hasattr(fs, "app"):
+      fs.app(target=main)
+      return
+  except Exception:
+    pass
+
+  # Método 2: Módulo flet.app interno
+  try:
+    import flet.app as fa
+
+    if hasattr(fa, "app"):
+      fa.app(target=main)
+      return
+    elif callable(fa):
+      fa(target=main)
+      return
+  except Exception:
+    pass
+
+  # Método 3: Llamada directa a nivel de paquete
+  try:
+    ft.app(target=main)
+  except Exception:
+    pass
+
+
+arrancar()
