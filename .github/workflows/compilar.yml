@@ -21,6 +21,13 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
+      # Instalar Flutter moderno y actualizado en el sistema
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
@@ -53,75 +60,23 @@ jobs:
 
       - name: Compilar APK
         run: |
-          # 1. Crear monitor en Python para neutralizar la incompatibilidad de jni
-          cat << 'EOF' > fix_jni.py
-          import os, time
-
-          patch_code = """
-          const actualMajorVersion = 1;
-          const actualMinorVersion = 99;
-          const actualPatchVersion = 0;
-          bool jni$_jniVersionCheck(int major, int minor) => true;
-          """
-
-          pub_caches = [
-              os.path.expanduser('~/.pub-cache'),
-              '/home/runner/.pub-cache',
-          ]
-
-          while True:
-              for base in pub_caches:
-                  if os.path.exists(base):
-                      for root, dirs, files in os.walk(base):
-                          if 'version_check.dart' in files:
-                              p = os.path.join(root, 'version_check.dart')
-                              try:
-                                  with open(p, 'r') as f:
-                                      c = f.read()
-                                  if 'actualMinorVersion = 99' not in c:
-                                      with open(p, 'w') as f:
-                                          f.write(patch_code)
-                                      print(f"Parcheado aplicado con éxito en: {p}", flush=True)
-                              except Exception:
-                                  pass
-                          if 'generated_plugin.dart' in files:
-                              p = os.path.join(root, 'generated_plugin.dart')
-                              try:
-                                  with open(p, 'r') as f:
-                                      c = f.read()
-                                  if 'jni$_jniVersionCheck(1, 1)' in c:
-                                      c = c.replace('jni$_jniVersionCheck(1, 1)', 'true')
-                                      with open(p, 'w') as f:
-                                          f.write(c)
-                                      print(f"Parcheado plugin en: {p}", flush=True)
-                              except Exception:
-                                  pass
-              time.sleep(0.5)
-          EOF
-
-          # 2. Iniciar el monitor en segundo plano
-          python3 fix_jni.py &
-          MONITOR_PID=$!
-
-          # 3. Compilar APK
           flet build apk --yes
-
-          # 4. Detener el monitor
-          kill $MONITOR_PID 2>/dev/null || true
 
       - name: Firmar el archivo APK
         run: |
+          # Generar certificado de depuración
           keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
 
+          # Ubicar apksigner oficial
           APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
           echo "Herramienta de firma: $APKSIGNER"
 
+          # Firmar todos los APK generados
           for apk in $(find . -name "*.apk" -not -path "*/.*"); do
             echo "Firmando $apk..."
             $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey "$apk"
             $APKSIGNER verify "$apk"
           done
-          echo "APK firmado y verificado exitosamente."
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
