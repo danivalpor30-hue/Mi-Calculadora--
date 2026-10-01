@@ -188,7 +188,7 @@ def main(page: ft.Page):
       ),
   )
 
-  # Barra de pestañas
+  # Configuración y renderizado de pestañas
   tabs_control = ft.Tabs(
       selected_index=0,
       tabs=[tab_capital, tab_rango, tab_venta_sl, tab_ganancia],
@@ -196,12 +196,4 @@ def main(page: ft.Page):
   page.add(tabs_control)
 
 
-# -------------------------------------------------------------------------
-# Ejecución compatible con Android móvil y Web
-# -------------------------------------------------------------------------
-try:
-  import flet_runtime as fr
-
-  fr.app(main)
-except Exception:
-  ft.app(main)
+ft.app(main)
