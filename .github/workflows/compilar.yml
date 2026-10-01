@@ -26,27 +26,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar Flet en el Runner
+      - name: Instalar Flet
         run: |
           python -m pip install --upgrade pip
-          pip install flet flet-runtime flet-core typing-extensions
-
-      - name: Preparar dependencias del APK (requirements.txt)
-        run: |
-          cat << 'EOF' > requirements.txt
-          flet
-          flet-runtime
-          flet-core
-          typing-extensions
-          EOF
-          mkdir -p src
-          cp -f requirements.txt src/requirements.txt
+          pip install flet
 
       - name: Sincronizar archivos del proyecto
         run: |
           MAIN_FILE=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
           echo "Archivo encontrado en: $MAIN_FILE"
 
+          mkdir -p src
           if [ "$MAIN_FILE" != "./src/main.py" ] && [ "$MAIN_FILE" != "src/main.py" ]; then
             cp -f "$MAIN_FILE" src/main.py
           fi
@@ -63,36 +53,24 @@ jobs:
 
       - name: Compilar APK
         run: |
-          (
-            while true; do
-              for f in $HOME/.pub-cache/hosted/pub.dev/jni-*/lib/src/version_check.dart; do
-                if [ -f "$f" ]; then
-                  sed -i 's/actualMinorVersion >= minor/true/g' "$f" 2>/dev/null || true
-                  sed -i 's/actualMinorVersion = [0-9]*/actualMinorVersion = 99/g' "$f" 2>/dev/null || true
-                fi
-              done
-              sleep 1
-            done
-          ) &
-          PATCH_PID=$!
-
           flet build apk --yes
-
-          kill $PATCH_PID 2>/dev/null || true
 
       - name: Firmar el archivo APK
         run: |
+          # 1. Crear el certificado de firma de desarrollo
           keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
 
+          # 2. Localizar la herramienta oficial apksigner
           APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
           echo "Herramienta de firma: $APKSIGNER"
 
+          # 3. Firmar todos los APKs generados
           for apk in $(find . -name "*.apk" -not -path "*/.*"); do
             echo "Firmando $apk..."
             $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey "$apk"
             $APKSIGNER verify "$apk"
           done
-          echo "APK firmado y verificado exitosamente."
+          echo "¡APKs firmados correctamente!"
 
       - name: Subir APK
         uses: actions/upload-artifact@v4
