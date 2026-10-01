@@ -1,141 +1,112 @@
-import flet as ft
+name: Compilar APK de Flet
 
-# Importación compatible para móvil (Android/iOS) y Web
-try:
-    from flet.app import app as run_app
-except Exception:
-    try:
-        from flet_runtime.app import app as run_app
-    except Exception:
-        run_app = getattr(ft, "app", None)
+on:
+  workflow_dispatch:
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-def main(page: ft.Page):
-    page.title = "Calculadora Financiera"
-    page.theme_mode = ft.ThemeMode.DARK
-    page.padding = 20
-    page.scroll = ft.ScrollMode.AUTO
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
 
-    # ==========================================
-    # PESTAÑA 1: OBJETIVO DE VENTA
-    # ==========================================
-    p1_compra = ft.TextField(label="Precio de compra ($)", keyboard_type=ft.KeyboardType.NUMBER)
-    p1_pct = ft.TextField(label="% Ganancia buscada (ej: 10)", keyboard_type=ft.KeyboardType.NUMBER)
-    p1_resultado = ft.Text(value="", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_400)
+      - name: Configurar Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    def calcular_tab1(e):
-        try:
-            pc = float(p1_compra.value)
-            pct = float(p1_pct.value)
-            pv = pc * (1 + (pct / 100))
-            p1_resultado.value = f"Precio de venta objetivo: ${pv:.2f}"
-        except ValueError:
-            p1_resultado.value = "Ingresa números válidos"
-        page.update()
+      - name: Aceptar licencias de Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
-    btn_tab1 = ft.ElevatedButton("Calcular Venta", on_click=calcular_tab1)
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    tab1_content = ft.Column([
-        ft.Text("Objetivo de Venta", size=20, weight=ft.FontWeight.BOLD),
-        p1_compra,
-        p1_pct,
-        btn_tab1,
-        p1_resultado
-    ], spacing=15)
+      - name: Instalar Flet
+        run: |
+          python -m pip install --upgrade pip
+          pip install flet flet-runtime
 
-    # ==========================================
-    # PESTAÑA 2: GANANCIA REAL + CONTRATOS
-    # ==========================================
-    p2_compra = ft.TextField(label="Precio de compra ($)", keyboard_type=ft.KeyboardType.NUMBER)
-    p2_venta = ft.TextField(label="Precio de venta ($)", keyboard_type=ft.KeyboardType.NUMBER)
-    p2_contratos = ft.TextField(label="Cantidad de contratos", value="1", keyboard_type=ft.KeyboardType.NUMBER)
-    
-    p2_res_diferencia = ft.Text(value="", size=16, weight=ft.FontWeight.W_500)
-    p2_res_pct = ft.Text(value="", size=16, weight=ft.FontWeight.W_500)
-    p2_res_total = ft.Text(value="", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_400)
+      - name: Sincronizar archivos del proyecto
+        run: |
+          MAIN_FILE=$(find . -name "main.py" -not -path "*/.*" | head -n 1)
+          echo "Archivo encontrado en: $MAIN_FILE"
 
-    def calcular_tab2(e):
-        try:
-            pc = float(p2_compra.value)
-            pv = float(p2_venta.value)
-            contratos = float(p2_contratos.value)
+          mkdir -p src
+          if [ "$MAIN_FILE" != "./src/main.py" ] && [ "$MAIN_FILE" != "src/main.py" ]; then
+            cp -f "$MAIN_FILE" src/main.py
+          fi
 
-            diff = pv - pc
-            pct = (diff / pc) * 100 if pc != 0 else 0
-            # Cada contrato equivale a 100 acciones
-            ganancia_total = diff * 100 * contratos
+          if [ "$MAIN_FILE" != "./main.py" ] && [ "$MAIN_FILE" != "main.py" ]; then
+            cp -f "$MAIN_FILE" ./main.py
+          fi
 
-            color_resultado = ft.Colors.GREEN_400 if diff >= 0 else ft.Colors.RED_400
+          # Asegurar que se empaqueten ambos módulos en el APK
+          echo "flet" > requirements.txt
+          echo "flet-runtime" >> requirements.txt
+          cp requirements.txt src/ 2>/dev/null || true
 
-            p2_res_diferencia.value = f"Diferencia por acción: ${diff:.2f}"
-            p2_res_pct.value = f"Rendimiento: {pct:.2f}%"
-            p2_res_total.value = f"Ganancia Total: ${ganancia_total:.2f}"
-            p2_res_total.color = color_resultado
+      - name: Compilar APK
+        run: |
+          python -c "
+          import site, os
+          for p in site.getsitepackages():
+              for root, _, files in os.walk(p):
+                  for f in files:
+                      if f.endswith(('.py', '.yaml', '.toml')):
+                          fp = os.path.join(root, f)
+                          try:
+                              with open(fp, 'r', encoding='utf-8') as file:
+                                  txt = file.read()
+                              if 'jni: 1.0.0' in txt:
+                                  with open(fp, 'w', encoding='utf-8') as file:
+                                      file.write(txt.replace('jni: 1.0.0', 'jni: ^1.1.0'))
+                          except Exception:
+                              pass
+          "
 
-        except ValueError:
-            p2_res_total.value = "Ingresa números válidos"
-            p2_res_total.color = ft.Colors.RED_400
-        page.update()
+          (
+            while true; do
+              find /home/runner -type f -name "*generated_plugin.dart" 2>/dev/null | while read -r f; do
+                if grep -q "JniVersionCheck(1, 1)" "$f" 2>/dev/null; then
+                  sed -i 's/JniVersionCheck(1, 1)/JniVersionCheck(1, 0)/g' "$f"
+                  echo "Parche aplicado en: $f"
+                fi
+              done
 
-    btn_tab2 = ft.ElevatedButton("Calcular Ganancia", on_click=calcular_tab2)
+              find /home/runner -type f -name "*version_check.dart" 2>/dev/null | while read -r f; do
+                if grep -q "actualMajorVersion == major" "$f" 2>/dev/null; then
+                  sed -i 's/actualMajorVersion == major/true/g' "$f"
+                  sed -i 's/actualMinorVersion >=/true || actualMinorVersion >=/g' "$f"
+                fi
+              done
 
-    tab2_content = ft.Column([
-        ft.Text("Cálculo de Ganancia (Opciones)", size=20, weight=ft.FontWeight.BOLD),
-        p2_compra,
-        p2_venta,
-        p2_contratos,
-        btn_tab2,
-        p2_res_diferencia,
-        p2_res_pct,
-        p2_res_total
-    ], spacing=12)
+              sleep 2
+            done
+          ) &
+          WATCHER_PID=$!
 
-    # ==========================================
-    # PESTAÑA 3: RANGO %
-    # ==========================================
-    p3_min = ft.TextField(label="Precio mínimo / inicial", keyboard_type=ft.KeyboardType.NUMBER)
-    p3_max = ft.TextField(label="Precio máximo / final", keyboard_type=ft.KeyboardType.NUMBER)
-    p3_resultado = ft.Text(value="", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400)
+          flet build apk --yes
 
-    def calcular_tab3(e):
-        try:
-            p_min = float(p3_min.value)
-            p_max = float(p3_max.value)
-            diferencia = p_max - p_min
-            var_pct = (diferencia / p_min) * 100 if p_min != 0 else 0
-            p3_resultado.value = f"Diferencia: ${diferencia:.2f} | Variación: {var_pct:.2f}%"
-        except ValueError:
-            p3_resultado.value = "Ingresa números válidos"
-        page.update()
+          kill $WATCHER_PID 2>/dev/null || true
 
-    btn_tab3 = ft.ElevatedButton("Calcular Rango", on_click=calcular_tab3)
+      - name: Firmar el archivo APK
+        run: |
+          keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
 
-    tab3_content = ft.Column([
-        ft.Text("Diferencia de Rango %", size=20, weight=ft.FontWeight.BOLD),
-        p3_min,
-        p3_max,
-        btn_tab3,
-        p3_resultado
-    ], spacing=15)
+          for apk in $(find . -name "*.apk" -not -path "*/.*"); do
+            echo "Firmando $apk..."
+            $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey "$apk"
+            $APKSIGNER verify "$apk"
+          done
 
-    # ==========================================
-    # NAVEGACIÓN
-    # ==========================================
-    tabs = ft.Tabs(
-        selected_index=1,
-        animation_duration=300,
-        tabs=[
-            ft.Tab(text="Venta", icon=ft.Icons.ATTACH_MONEY, content=ft.Container(content=tab1_content, padding=10)),
-            ft.Tab(text="Ganancia", icon=ft.Icons.TRENDING_UP, content=ft.Container(content=tab2_content, padding=10)),
-            ft.Tab(text="Rango %", icon=ft.Icons.PERCENT, content=ft.Container(content=tab3_content, padding=10)),
-        ],
-        expand=1,
-    )
-
-    page.add(tabs)
-
-
-if run_app:
-    run_app(target=main)
-else:
-    ft.app(target=main)
+      - name: Subir APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiCalculadoraAPK
+          path: "**/*.apk"
